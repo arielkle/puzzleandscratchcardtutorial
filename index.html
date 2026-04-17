@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>יוצרים משחקונים לחדר בריחה בגיניאלי - אריאל קלפנר</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&display=swap');
+        
+        :root {
+            --pastel-peach: #fff5eb;
+            --pastel-pink: #fce4ec;
+            --pastel-purple: #f3e5f5;
+            --pastel-pistachio: #e8f5e9;
+            --accent-peach: #ffccbc;
+            --accent-pink: #f8bbd0;
+            --accent-purple: #e1bee7;
+            --accent-pistachio: #c8e6c9;
+            --dark-text: #4a4a4a;
+        }
+
+        body {
+            font-family: 'Assistant', sans-serif;
+            background-color: var(--pastel-peach);
+            color: var(--dark-text);
+            overflow-x: hidden;
+        }
+
+        .theme-font { 
+            font-family: 'Assistant', sans-serif; 
+        }
+
+        /* פס גלילה בעיצוב פסטל */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--pastel-peach); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-pink); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(15px);
+            border: 2px solid white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .shadow-pastel {
+            box-shadow: 0 8px 20px rgba(255, 183, 178, 0.2);
+        }
+
+        .fade-in-section {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 20px;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .nav-button {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Icons (Inline SVGs) ---
+        const HomeIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        );
+        const PuzzleIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19.439 7.85c0-1.571-1.28-2.85-2.85-2.85h-2.1c-.13 0-.25-.05-.35-.15l-1.4-1.4c-.45-.45-1.15-.45-1.6 0l-1.4 1.4c-.1.1-.22.15-.35.15h-2.1c-1.571 0-2.85 1.28-2.85 2.85v2.1c0 .13-.05.25-.15.35l-1.4 1.4c-.45.45-.45 1.15 0 1.6l1.4 1.4c.1.1.15.22.15.35v2.1c0 1.571 1.28 2.85 2.85 2.85h2.1c.13 0 .25.05.35.15l1.4 1.4c.45.45 1.15.45 1.6 0l1.4-1.4c.1-.1.22-.15.35-.15h2.1c1.571 0 2.85-1.28 2.85-2.85v-2.1c0-.13.05-.25.15-.35l1.4-1.4c.45-.45.45-1.15 0-1.6l-1.4-1.4c-.1-.1-.15-.22-.15-.35v-2.1Z"/></svg>
+        );
+        const BrainIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.203A4.002 4.002 0 0 0 12 21a4.002 4.002 0 0 0 7.003-1.902 4 4 0 0 0 .52-8.203 4 4 0 0 0-2.526-5.77A3 3 0 1 0 12 5Z"/><path d="M9 13a4.5 4.5 0 0 0 3 4"/><path d="M15 13a4.5 4.5 0 0 1-3 4"/><path d="M12 17v4"/></svg>
+        );
+        const GithubIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+        );
+        const UploadIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        );
+        const RefreshIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
+        );
+        const CodeIcon = ({ size = 20 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        );
+        const PhoneIcon = ({ size = 16 }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        );
+
+        function App() {
+          const [activePage, setActivePage] = useState(1);
+          const [imgSrc, setImgSrc] = useState('pic.png');
+
+          const navItems = [
+            { id: 1, title: 'ראשי', icon: <HomeIcon />, color: 'bg-orange-200' },
+            { id: 2, title: 'הרחבת פאזל', icon: <PuzzleIcon />, color: 'bg-pink-200' },
+            { id: 3, title: 'בניית פאזל', icon: <PuzzleIcon />, color: 'bg-purple-200' },
+            { id: 4, title: 'כרטיס גירוד AI', icon: <BrainIcon />, color: 'bg-emerald-200' },
+            { id: 5, title: 'חשבון GitHub', icon: <GithubIcon />, color: 'bg-blue-200' },
+            { id: 6, title: 'העלאה ל-GitHub', icon: <UploadIcon />, color: 'bg-yellow-200' },
+            { id: 7, title: 'עדכון ושיפור', icon: <RefreshIcon />, color: 'bg-rose-200' },
+            { id: 8, title: 'הטמעת משחקון', icon: <CodeIcon />, color: 'bg-teal-200' }
+          ];
+
+          const topics = [
+              { id: 2, title: "1. הוספת הרחבת פאזל לפעילות שלנו", desc: "איך להוסיף את התשתית הטכנית של פאזל לתוך ה-Genially שלכם.", videoId: "uJOw1C-xKN4", color: 'bg-pink-50' },
+              { id: 3, title: "2. יצירת פאזל עם הרחבת פאזל", desc: "בנייה מעשית של הפאזל, הגדרת החלקים ותנאי הניצחון.", videoId: "gcTigKadhKY", color: 'bg-purple-50' },
+              { id: 4, title: "3. יצירת כרטיס גירוד עם ג׳מיני", desc: "שימוש בבינה מלאכותית ליצירת קוד של כרטיס גירוד אינטראקטיבי.", videoId: "BiQERbnJP9w", color: 'bg-emerald-50' },
+              { id: 5, title: "4. פתיחת חשבון בגיטהאב", desc: "מדריך שלב אחר שלב להקמת חשבון GitHub לאחסון המשחקונים.", videoId: "KTLT5ixXZOg", color: 'bg-blue-50' },
+              { id: 6, title: "5. העלאת קובץ המשחקון לגיטהאב", desc: "איך להפוך את הקוד שקיבלנו מה-AI לאתר חי שניתן להטמיע.", videoId: "6OepBPbOk7g", color: 'bg-yellow-50' },
+              { id: 7, title: "6. עדכון קובץ המשחקון לאחר שיפורים", desc: "ביצוע שינויים בקוד ועדכון הגרסה ב-GitHub בצורה פשוטה.", videoId: "-L7NQ39aZkE", color: 'bg-rose-50' },
+              { id: 8, title: "7. הטמעת האפליקציה בגיטהאב", desc: "סגירת המעגל: הטמעת המשחקון מ-GitHub לתוך ה-Genially שלכם.", videoId: "48eL3fHgUXE", color: 'bg-teal-50' }
+          ];
+
+          const currentTopic = topics.find(t => t.id === activePage);
+
+          return (
+            <div className="min-h-screen flex flex-col">
+              
+              {/* Navigation Menu */}
+              <nav className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 p-4 border-b border-orange-100 overflow-x-auto no-scrollbar">
+                <div className="container mx-auto flex justify-start md:justify-center">
+                  <ul className="flex flex-nowrap gap-2 md:gap-3">
+                    {navItems.map((item) => (
+                      <li key={item.id}>
+                        <button
+                          onClick={() => {
+                            setActivePage(item.id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 text-xs md:text-sm font-bold theme-font whitespace-nowrap nav-button ${
+                            activePage === item.id 
+                              ? `${item.color} text-slate-800 shadow-pastel scale-105` 
+                              : 'bg-white hover:bg-slate-50 text-slate-500 border border-slate-100'
+                          }`}
+                        >
+                          {item.icon}
+                          <span className={activePage === item.id ? 'block' : 'hidden lg:block'}>{item.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </nav>
+
+              <main className="container mx-auto px-4 mt-8 md:mt-12 max-w-5xl flex-grow">
+                
+                {/* Header Section */}
+                <header className="flex flex-col items-center text-center mb-12 fade-in-section">
+                  <h1 className="text-3xl md:text-5xl font-black text-pink-500 mb-4 tracking-tight drop-shadow-sm theme-font">
+                    יוצרים משחקונים לחדר בריחה בגיניאלי
+                  </h1>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-400 theme-font tracking-wide uppercase">
+                    אריאל קלפנר | טכנופדגוגיה ו-AI
+                  </h2>
+                  
+                  <div className="mt-8 relative group w-full flex justify-center">
+                    <div className="p-1 rounded-full bg-gradient-to-tr from-pink-200 via-purple-200 to-emerald-200 shadow-xl">
+                        <img 
+                          src={imgSrc} 
+                          alt="אריאל קלפנר" 
+                          className="w-24 md:w-32 aspect-square rounded-full border-4 border-white object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={() => setImgSrc('https://api.dicebear.com/7.x/avataaars/svg?seed=Ariel')}
+                        />
+                    </div>
+                  </div>
+                </header>
+
+                {/* Content Area */}
+                <div className="glass-panel rounded-[2.5rem] p-6 md:p-12 min-h-[500px] transition-all duration-500">
+                  
+                  {/* Page 1: Home / Main */}
+                  {activePage === 1 && (
+                    <div className="flex flex-col items-center space-y-12">
+                      
+                      <div className="bg-orange-50/50 border border-orange-100 p-8 rounded-[2rem] max-w-3xl w-full text-center">
+                        <p className="text-xl md:text-2xl font-extrabold text-orange-400 theme-font mb-4">
+                          מדריך שילוב משחקונים מתקדמים
+                        </p>
+                        <p className="text-lg text-slate-600 leading-relaxed">
+                          ברוכים הבאים למדריך המעשי ליצירה ושילוב משחקונים אינטראקטיביים בתוך חדרי בריחה ב-Genially. נלמד להשתמש בהרחבות, בבינה מלאכותית ובאחסון חיצוני כדי להעשיר את החוויה של התלמידים.
+                        </p>
+                      </div>
+
+                      {/* Topic List Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+                        {topics.map((topic) => (
+                          <button 
+                            key={topic.id}
+                            onClick={() => setActivePage(topic.id)}
+                            className={`flex items-center gap-4 p-6 ${topic.color} rounded-[1.5rem] border border-white hover:shadow-xl transition-all text-right group transform hover:-translate-y-1`}
+                          >
+                            <div className="bg-white p-4 rounded-2xl text-slate-600 shadow-sm transition-colors">
+                                {navItems.find(n => n.id === topic.id).icon}
+                            </div>
+                            <div className="flex-grow">
+                                <h4 className="font-bold text-slate-700">{topic.title}</h4>
+                                <p className="text-sm text-slate-500 mt-1 line-clamp-1">{topic.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Videos Pages (2-8) */}
+                  {activePage > 1 && currentTopic && (
+                    <div className="flex flex-col items-center text-center space-y-8 fade-in-section">
+                      <div className={`px-10 py-4 rounded-2xl shadow-sm border border-white ${currentTopic.color}`}>
+                        <h3 className="text-xl md:text-2xl font-black theme-font tracking-tight text-slate-700">
+                          {currentTopic.title}
+                        </h3>
+                      </div>
+                      
+                      <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
+                        {currentTopic.desc}
+                      </p>
+
+                      <div className="w-full max-w-4xl rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white bg-slate-50 group">
+                        <div className="video-container">
+                            <iframe 
+                                className="transition-opacity" 
+                                src={`https://www.youtube.com/embed/${currentTopic.videoId}`}
+                                title="Tutorial Video" 
+                                frameBorder="0" 
+                                allowFullScreen>
+                            </iframe>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-4">
+                        <button 
+                            onClick={() => setActivePage(1)}
+                            className="text-slate-500 hover:text-pink-500 transition-colors flex items-center gap-2 theme-font font-bold px-8 py-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md"
+                        >
+                            <HomeIcon size={18} />
+                            חזרה לרשימת המדריכים
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                </div>
+              </main>
+
+              {/* Footer */}
+              <footer className="container mx-auto mt-16 pb-12 text-center fade-in-section">
+                <div className="inline-block glass-panel px-12 py-8 rounded-[2.5rem]">
+                    <div className="p-1 rounded-full bg-white shadow-sm inline-block mb-4">
+                        <img 
+                          src={imgSrc} 
+                          className="w-16 h-16 rounded-full object-cover" 
+                          onError={(e) => e.target.style.display='none'} 
+                        />
+                    </div>
+                    <p className="text-pink-500 font-extrabold theme-font text-lg tracking-wide flex flex-col md:flex-row items-center justify-center gap-2">
+                        <span>אריאל קלפנר</span>
+                        <span className="hidden md:inline text-slate-200">|</span>
+                        <span dir="ltr" className="flex items-center gap-2 text-slate-600">
+                            050-9540538
+                            <PhoneIcon size={16} className="text-pink-300" />
+                        </span>
+                    </p>
+                    <p className="text-slate-400 text-sm mt-2 font-semibold">טכנופדגוגיה, הערכה ובינה מלאכותית בחינוך</p>
+                    <div className="mt-6 flex justify-center gap-4 text-slate-300">
+                        <span className="text-xs font-bold">© {new Date().getFullYear()} כל הזכויות שמורות</span>
+                    </div>
+                </div>
+              </footer>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
